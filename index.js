@@ -1,49 +1,28 @@
 const express = require("express");
 const geolib = require("geolib");
-const axios = require("axios");
 
 const app = express();
 
-// Your geofence coordinates
-const geofence = [
-  { latitude: 39.0997, longitude: -94.5786 },
-  // Add other coordinates
-];
+// Middleware to check if user is in geofence
+app.use(async (req, res, next) => {
+  const center = { latitude: 0, longitude: 0 }; // Replace with real address coordinates
+  const userLocation = { latitude: 0, longitude: 0 }; // Replace with real user coordinates
+  const distance = geolib.getDistance(center, userLocation);
 
-app.use(express.json());
+  // 200 feet in meters (since geolib uses meters)
+  const allowedDistance = 200 * 0.3048;
 
-// Middleware to check geofence
-// app.use((req, res, next) => {
-//   // Mock user coordinates, you'll get these dynamically
-//   const userLocation = { latitude: 39.0997, longitude: -94.5786 };
+  if (distance <= allowedDistance) {
+    next();
+  } else {
+    res.status(403).send("Outside geofence");
+  }
+});
 
-//   const isInGeofence = geolib.isPointInPolygon(userLocation, geofence);
-//   console.log(isInGeofence);
-//   if (isInGeofence) {
-//     next();
-//   } else {
-//     res.status(403).send("You're outside the geofence");
-//   }
-// });
-//
-// app.get("/", (req, res) => {
-//   res.send("You're inside the geofence!");
-// });
-
-app.post("/geocode", (req, res) => {
-  const { address } = req.body;
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=API_KEY`;
-  axios
-    .get(url)
-    .then((response) => {
-      const { lat, lng } = response.data.results[0].geometry.location;
-      res.json({ lat, lng });
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+app.get("/", (req, res) => {
+  res.send("Within 200 feet of the address");
 });
 
 app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+  console.log("Server running");
 });
